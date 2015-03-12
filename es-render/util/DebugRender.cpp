@@ -15,8 +15,8 @@ namespace ren {
 DebugRender::DebugRender() :
     mLines(0),
     mCurCircum(0),
-    mColorUniform("uColor", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), VecUniform::VEC4),
-    mShaderID(0)
+    mShaderID(0),
+    mColorUniform("uColor", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), VecUniform::VEC4)
 {}
 
 DebugRender::DebugRender(CPM_ES_CEREAL_NS::CerealCore& core) :
