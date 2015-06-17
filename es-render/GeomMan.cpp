@@ -139,7 +139,7 @@ void GeomMan::loadAssetCB(const std::string& assetName, bool error,
       }
 
       std::shared_ptr<VBOMan>  vboMan = core.getStaticComponent<StaticVBOMan>()->instance_;
-      std::shared_ptr<IBOMan>  = core.getStaticComponent<StaticIBOMan>()->instance_;
+      std::shared_ptr<IBOMan>  iboMan = core.getStaticComponent<StaticIBOMan>()->instance_;
       Tny* meshRoot = Tny_get(doc, "meshes")->value.tny;
       // A number of meshes doesn't make any sense since we select on the asset
       // name in the IBO and VBO.
@@ -380,7 +380,7 @@ public:
                const es::ComponentGroup<GeomPromise>& promisesGroup,
                const es::ComponentGroup<StaticGeomMan>& geomManGroup) override
   {
-    GeomMan* geomMan = geomManGroup.front().instance_;
+    std::shared_ptr<GeomMan> geomMan = geomManGroup.front().instance_;
 
     CPM_ES_CEREAL_NS::CerealCore* ourCorePtr = dynamic_cast<CPM_ES_CEREAL_NS::CerealCore*>(&core);
     if (ourCorePtr == nullptr)

@@ -41,8 +41,8 @@ void setTexQuadTransform(CPM_ES_CEREAL_NS::CerealCore& core, uint64_t entityID, 
 
 std::pair<ren::VBO, ren::IBO> getTexUnitQuad(CPM_ES_NS::ESCoreBase& core)
 {
-  std::shared_ptr<ren::VBOMan> = core.getStaticComponent<ren::StaticVBOMan>()->instance_;
-  std::shared_ptr<ren::IBOMan> = core.getStaticComponent<ren::StaticIBOMan>()->instance_;
+  std::shared_ptr<ren::VBOMan> vboMan = core.getStaticComponent<ren::StaticVBOMan>()->instance_;
+  std::shared_ptr<ren::IBOMan> iboMan = core.getStaticComponent<ren::StaticIBOMan>()->instance_;
 
   const std::string assetName = "_g_uquad";
 

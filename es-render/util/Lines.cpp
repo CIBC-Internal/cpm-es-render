@@ -12,8 +12,8 @@ namespace ren {
 
 std::pair<ren::VBO, ren::IBO> getLineUnitSquare(CPM_ES_CEREAL_NS::CerealCore& core)
 {
-  ren::VBOMan* vboMan = core.getStaticComponent<ren::StaticVBOMan>()->instance_;
-  ren::IBOMan* iboMan = core.getStaticComponent<ren::StaticIBOMan>()->instance_;
+  std::shared_ptr<ren::VBOMan> vboMan = core.getStaticComponent<ren::StaticVBOMan>()->instance_;
+  std::shared_ptr<ren::IBOMan> iboMan = core.getStaticComponent<ren::StaticIBOMan>()->instance_;
 
   const std::string assetName = "_g_usqline";
 
@@ -74,7 +74,7 @@ std::pair<ren::VBO, ren::IBO> getLineUnitSquare(CPM_ES_CEREAL_NS::CerealCore& co
 GLuint getColorLineShader(CPM_ES_CEREAL_NS::CerealCore& core)
 {
   const char* colorLineShaderName = "_memColorLine";
-  ren::ShaderMan* shaderMan = core.getStaticComponent<ren::StaticShaderMan>()->instance_;
+  std::shared_ptr<ren::ShaderMan> shaderMan = core.getStaticComponent<ren::StaticShaderMan>()->instance_;
 
   GLuint shaderID = shaderMan->getIDForAsset(colorLineShaderName);
   if (shaderID == 0)
