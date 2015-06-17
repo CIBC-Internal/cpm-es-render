@@ -10,34 +10,33 @@ namespace ren {
 struct StaticGeomMan
 {
     // -- Data --
-    GeomMan *instance_;
+    std::shared_ptr<GeomMan> instance_;
 
     // -- Functions --
-    StaticGeomMan() : instance_(new GeomMan) {}
-    StaticGeomMan(GeomMan* s) : instance_(s) {}
+    StaticGeomMan() : instance_(std::shared_ptr<GeomMan>(new GeomMan)) {}
+    StaticGeomMan(GeomMan* s) : instance_(std::shared_ptr<GeomMan>(s)) {}
 
-
-  // This assignment operator is only used during modification calls inside
-  // of the entity system. We don't care about those calls as they won't
-  // affect this static shader man.
-  StaticGeomMan& operator=(const StaticGeomMan&)
-  {
+    // This assignment operator is only used during modification calls inside
+    // of the entity system. We don't care about those calls as they won't
+    // affect this static shader man.
+    StaticGeomMan& operator=(const StaticGeomMan&)
+    {
     // We don't care about the incoming object. We've already created oun own
     // shader man and will continue to use that.
     return *this;
-  }
+    }
 
-  static const char* getName() {return "ren:StaticGeomMan";}
+    static const char* getName() {return "ren:StaticGeomMan";}
 
 private:
-  friend class CPM_ES_CEREAL_NS::CerealHeap<StaticGeomMan>;
+    friend class CPM_ES_CEREAL_NS::CerealHeap<StaticGeomMan>;
 
-  bool serialize(CPM_ES_CEREAL_NS::ComponentSerialize&, uint64_t)
-  {
+    bool serialize(CPM_ES_CEREAL_NS::ComponentSerialize&, uint64_t)
+    {
     // No need to serialize. But we do want that we were in the component
     // system to be serialized out.
     return true;
-  }
+    }
 };
 
 } // namespace ren

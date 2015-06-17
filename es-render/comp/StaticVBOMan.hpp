@@ -11,19 +11,20 @@ class VBOMan;
 
 struct StaticVBOMan
 {
-  // -- Data --
-  VBOMan * instance_;
-  // -- Functions --
-  StaticVBOMan() : instance_(new VBOMan) {}
-  StaticVBOMan(VBOMan * v) : instance_(v) {}
+    // -- Data --
+    std::shared_ptr<VBOMan> instance_;
 
-  static const char* getName() {return "ren:StaticVBOMan";}
+    // -- Functions --
+    StaticVBOMan() : instance_(std::shared_ptr<VBOMan>(new VBOMan)) {}
+    StaticVBOMan(VBOMan* s) : instance_(std::shared_ptr<VBOMan>(s)) {}
 
-  bool serialize(CPM_ES_CEREAL_NS::ComponentSerialize& /* s */, uint64_t /* entityID */)
-  {
-    // No need to serialize.
-    return true;
-  }
+    static const char* getName() {return "ren:StaticVBOMan";}
+
+    bool serialize(CPM_ES_CEREAL_NS::ComponentSerialize& /* s */, uint64_t /* entityID */)
+    {
+        // No need to serialize.
+        return true;
+    }
 };
 
 } // namespace ren

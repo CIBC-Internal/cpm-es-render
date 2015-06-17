@@ -9,34 +9,34 @@ namespace ren {
 
 struct StaticFontMan
 {
-  // -- Data --
-  FontMan* instance_;
+    // -- Data --
+    std::shared_ptr<FontMan> instance_;
 
-  // -- Functions --
-  StaticFontMan() : instance_(new FontMan) {}
-  StaticFontMan(FontMan* o) : instance_(o) {}
+    // -- Functions --
+    StaticFontMan() : instance_(std::shared_ptr<FontMan>(new FontMan)) {}
+    StaticFontMan(FontMan* s) : instance_(std::shared_ptr<FontMan>(s)) {}
 
-  // This assignment operator is only used during modification calls inside
-  // of the entity system. We don't care about those calls as they won't
-  // affect this static shader man.
-  StaticFontMan& operator=(const StaticFontMan&)
-  {
+    // This assignment operator is only used during modification calls inside
+    // of the entity system. We don't care about those calls as they won't
+    // affect this static shader man.
+    StaticFontMan& operator=(const StaticFontMan&)
+    {
     // We don't care about the incoming object. We've already created oun own
     // shader man and will continue to use that.
     return *this;
-  }
+    }
 
-  static const char* getName() {return "ren:StaticFontMan";}
+    static const char* getName() {return "ren:StaticFontMan";}
 
 private:
-  friend class CPM_ES_CEREAL_NS::CerealHeap<StaticFontMan>;
+    friend class CPM_ES_CEREAL_NS::CerealHeap<StaticFontMan>;
 
-  bool serialize(CPM_ES_CEREAL_NS::ComponentSerialize&, uint64_t)
-  {
+    bool serialize(CPM_ES_CEREAL_NS::ComponentSerialize&, uint64_t)
+    {
     // No need to serialize. But we do want that we were in the component
     // system to be serialized out.
     return true;
-  }
+    }
 };
 
 } // namespace ren

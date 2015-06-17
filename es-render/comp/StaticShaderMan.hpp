@@ -12,11 +12,11 @@ namespace ren {
 struct StaticShaderMan
 {
   // -- Data --
-  ShaderMan *instance_;
+  std::shared_ptr<ShaderMan> instance_;
 
   // -- Functions --
-  StaticShaderMan() : instance_(new ShaderMan) {}
-  StaticShaderMan(ShaderMan* s) : instance_(s) {}
+  StaticShaderMan() : instance_(std::shared_ptr<ShaderMan>(new ShaderMan)) {}
+  StaticShaderMan(ShaderMan* s) : instance_(std::shared_ptr<ShaderMan>(s)) {}
 
   // This assignment operator is only used during modification calls inside
   // of the entity system. We don't care about those calls as they won't
