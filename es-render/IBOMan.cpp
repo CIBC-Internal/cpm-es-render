@@ -143,7 +143,7 @@ public:
   void preWalkComponents(es::ESCoreBase&) {mValidKeys.clear();}
   void postWalkComponents(es::ESCoreBase& core)
   {
-    IBOMan* man = core.getStaticComponent<StaticIBOMan>()->instance_;
+    std::shared_ptr<IBOMan> man = core.getStaticComponent<StaticIBOMan>()->instance_;
     if (man != nullptr)
     {
       man->runGCAgainstVaidIDs(mValidKeys);

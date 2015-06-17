@@ -423,7 +423,7 @@ public:
       std::cerr << "Unable to complete texture fulfillment. There is no StaticTextureMan." << std::endl;
       return;
     }
-    TextureMan* textureMan = man->instance_;
+    std::shared_ptr<TextureMan> textureMan = man->instance_;
     textureMan->mNewUnfulfilledAssets = false;
 
     if (mAssetsAwaitingRequest.size() > 0)
@@ -446,7 +446,7 @@ public:
                const es::ComponentGroup<TexturePromise>& promisesGroup,
                const es::ComponentGroup<StaticTextureMan>& textureManGroup) override
   {
-    TextureMan* textureMan = textureManGroup.front().instance_;
+    std::shared_ptr<TextureMan> textureMan = textureManGroup.front().instance_;
 
     CPM_ES_CEREAL_NS::CerealCore* ourCorePtr = dynamic_cast<CPM_ES_CEREAL_NS::CerealCore*>(&core);
     if (ourCorePtr == nullptr)
@@ -592,7 +592,7 @@ public:
       std::cerr << "Unable to complete texture garbage collection. There is no StaticTextureMan." << std::endl;
       return;
     }
-    TextureMan* texMan = man->instance_;
+    std::shared_ptr<TextureMan> texMan = man->instance_;
 
     texMan->runGCAgainstVaidIDs(mValidKeys);
     mValidKeys.clear();

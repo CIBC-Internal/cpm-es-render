@@ -185,7 +185,7 @@ bool FontMan::buildComponent(CPM_ES_CEREAL_NS::CerealCore& core, uint64_t entity
       rootAssetName = assetName.substr(0, slashIdx + 1);
     }
 
-    TextureMan* texMan = core.getStaticComponent<StaticTextureMan>()->instance_;
+    std::shared_ptr<TextureMan> texMan = core.getStaticComponent<StaticTextureMan>()->instance_;
     const FontMan::FontInfo& info = getFontInfo(id);
     const BMFont::PageBlock& pageBlock = info.fontInfo.getPageBlock();
     for (size_t i = 0; i < pageBlock.pages.size(); ++i)
@@ -252,7 +252,7 @@ public:
       std::cerr << "Unable to complete font fulfillment. There is no StaticFontMan." << std::endl;
       return;
     }
-    FontMan* fontMan = man->instance_;
+    std::shared_ptr<FontMan>  fontMan = man->instance_;
     fontMan->mNewUnfulfilledAssets = false;
 
     if (mAssetsAwaitingRequest.size() > 0)
@@ -275,7 +275,7 @@ public:
                const es::ComponentGroup<FontPromise>& promisesGroup,
                const es::ComponentGroup<StaticFontMan>& fontManGroup) override
   {
-    FontMan* fontMan = fontManGroup.front().instance_;
+    std::shared_ptr<FontMan> fontMan = fontManGroup.front().instance_;
 
     CPM_ES_CEREAL_NS::CerealCore* ourCorePtr = dynamic_cast<CPM_ES_CEREAL_NS::CerealCore*>(&core);
     if (ourCorePtr == nullptr)
@@ -406,7 +406,7 @@ public:
       std::cerr << "Unable to complete texture garbage collection. There is no StaticFontMan." << std::endl;
       return;
     }
-    FontMan* texMan = man->instance_;
+    std::shared_ptr<FontMan>  texMan = man->instance_;
 
     texMan->runGCAgainstVaidIDs(mValidKeys);
     mValidKeys.clear();

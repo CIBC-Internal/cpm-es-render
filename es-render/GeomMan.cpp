@@ -138,8 +138,8 @@ void GeomMan::loadAssetCB(const std::string& assetName, bool error,
         geom.textures.emplace_back(texName, samplerName, texUnit);
       }
 
-      VBOMan* vboMan = core.getStaticComponent<StaticVBOMan>()->instance_;
-      IBOMan* iboMan = core.getStaticComponent<StaticIBOMan>()->instance_;
+      std::shared_ptr<VBOMan>  vboMan = core.getStaticComponent<StaticVBOMan>()->instance_;
+      std::shared_ptr<IBOMan>  = core.getStaticComponent<StaticIBOMan>()->instance_;
       Tny* meshRoot = Tny_get(doc, "meshes")->value.tny;
       // A number of meshes doesn't make any sense since we select on the asset
       // name in the IBO and VBO.
@@ -264,8 +264,8 @@ bool GeomMan::buildComponent(CPM_ES_CEREAL_NS::CerealCore& core,
     component.setAssetName(assetName.c_str());
     core.addComponent(entityID, component);
 
-    VBOMan* vboMan = core.getStaticComponent<StaticVBOMan>()->instance_;
-    IBOMan* iboMan = core.getStaticComponent<StaticIBOMan>()->instance_;
+    std::shared_ptr<VBOMan> vboMan = core.getStaticComponent<StaticVBOMan>()->instance_;
+    std::shared_ptr<IBOMan> iboMan = core.getStaticComponent<StaticIBOMan>()->instance_;
 
     // VBO and IBO
     ren::VBO vbo;
@@ -299,11 +299,11 @@ bool GeomMan::buildComponent(CPM_ES_CEREAL_NS::CerealCore& core,
     {
       const GeomMan::GeomItem& geomItem = geomAsset->second;
       // Shader (will be loaded if necessary).
-      ShaderMan* shaderMan = core.getStaticComponent<StaticShaderMan>()->instance_;
+      std::shared_ptr<ShaderMan> shaderMan = core.getStaticComponent<StaticShaderMan>()->instance_;
       shaderMan->loadVertexAndFragmentShader(core, entityID, geomItem.shaderName);
 
       // Textures (will be loaded if necessary).
-      TextureMan* texMan = core.getStaticComponent<StaticTextureMan>()->instance_;
+      std::shared_ptr<TextureMan> texMan = core.getStaticComponent<StaticTextureMan>()->instance_;
       for (const GeomMan::GeomItem::TextureItem& texItem : geomItem.textures)
       {
         texMan->loadTexture(core, entityID, texItem.name,
@@ -354,7 +354,7 @@ public:
 
   void postWalkComponents(es::ESCoreBase& core)
   {
-    GeomMan* man = core.getStaticComponent<StaticGeomMan>()->instance_;
+    std::shared_ptr<GeomMan> man = core.getStaticComponent<StaticGeomMan>()->instance_;
     if (man == nullptr)
     {
       std::cerr << "Unable to complete geom fulfillment. There is no StaticGeomMan." << std::endl;
@@ -505,7 +505,7 @@ public:
 
   void postWalkComponents(es::ESCoreBase& core)
   {
-    GeomMan* man = core.getStaticComponent<StaticGeomMan>()->instance_;
+    std::shared_ptr<GeomMan> man = core.getStaticComponent<StaticGeomMan>()->instance_;
     if (man == nullptr)
     {
       std::cerr << "Unable to complete geom garbage collection. There is no StaticGeomMan." << std::endl;

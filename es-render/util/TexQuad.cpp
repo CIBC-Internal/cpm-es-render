@@ -18,7 +18,7 @@ void addTexQuad(CPM_ES_CEREAL_NS::CerealCore& core, uint64_t entityID, const std
   core.addComponent(entityID, vboIbo.first);
   core.addComponent(entityID, vboIbo.second);
 
-  ren::TextureMan* texMan = core.getStaticComponent<ren::StaticTextureMan>()->instance_;
+  std::shared_ptr<ren::TextureMan> texMan = core.getStaticComponent<ren::StaticTextureMan>()->instance_;
   texMan->loadTexture(core, entityID, texture, 0, "uTX0");
 }
 
@@ -41,8 +41,8 @@ void setTexQuadTransform(CPM_ES_CEREAL_NS::CerealCore& core, uint64_t entityID, 
 
 std::pair<ren::VBO, ren::IBO> getTexUnitQuad(CPM_ES_NS::ESCoreBase& core)
 {
-  ren::VBOMan* vboMan = core.getStaticComponent<ren::StaticVBOMan>()->instance_;
-  ren::IBOMan* iboMan = core.getStaticComponent<ren::StaticIBOMan>()->instance_;
+  std::shared_ptr<ren::VBOMan> = core.getStaticComponent<ren::StaticVBOMan>()->instance_;
+  std::shared_ptr<ren::IBOMan> = core.getStaticComponent<ren::StaticIBOMan>()->instance_;
 
   const std::string assetName = "_g_uquad";
 

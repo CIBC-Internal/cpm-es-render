@@ -56,7 +56,7 @@ struct Font
       if (core != nullptr)
       {
         StaticFontMan* staticFontMan = core->getStaticComponent<StaticFontMan>();
-        FontMan* fontMan = staticFontMan->instance_;
+        std::shared_ptr<FontMan> fontMan = staticFontMan->instance_;
 
         // Find the asset name associated with our fontID and serialize it out.
         std::string assetName = fontMan->getAssetFromID(fontID);

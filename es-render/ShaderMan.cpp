@@ -297,7 +297,7 @@ public:
 
   void postWalkComponents(es::ESCoreBase& core)
   {
-    ShaderMan* man = core.getStaticComponent<StaticShaderMan>()->instance_;
+    std::shared_ptr<ShaderMan> man = core.getStaticComponent<StaticShaderMan>()->instance_;
     if (man == nullptr)
     {
       std::cerr << "Unable to complete shader fulfillment. There is no ShaderMan." << std::endl;
@@ -325,7 +325,7 @@ public:
                const es::ComponentGroup<ShaderPromiseVF>& promisesGroup,
                const es::ComponentGroup<StaticShaderMan>& shaderManGroup) override
   {
-    ShaderMan* shaderMan = shaderManGroup.front().instance_;
+    std::shared_ptr<ShaderMan> shaderMan = shaderManGroup.front().instance_;
 
     CPM_ES_CEREAL_NS::CerealCore* ourCorePtr = dynamic_cast<CPM_ES_CEREAL_NS::CerealCore*>(&core);
     if (ourCorePtr == nullptr)
@@ -465,7 +465,7 @@ public:
 
   void postWalkComponents(es::ESCoreBase& core)
   {
-    ShaderMan* man = core.getStaticComponent<StaticShaderMan>()->instance_;
+    std::shared_ptr<ShaderMan> man = core.getStaticComponent<StaticShaderMan>()->instance_;
     if (man == nullptr)
     {
       std::cerr << "Unable to complete shader garbage collection. There is no ShaderMan." << std::endl;

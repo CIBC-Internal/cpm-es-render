@@ -43,7 +43,7 @@ struct Shader
     {
       CPM_ES_CEREAL_NS::CerealCore& core 
           = dynamic_cast<CPM_ES_CEREAL_NS::CerealCore&>(s.getCore());
-      ShaderMan* shaderMan = core.getStaticComponent<StaticShaderMan>()->instance_;
+      std::shared_ptr<ShaderMan> shaderMan = core.getStaticComponent<StaticShaderMan>()->instance_;
 
       // Find the asset name associated with our glid and serialize it out.
       std::string assetName = shaderMan->getAssetFromID(glid);
