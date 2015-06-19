@@ -174,11 +174,10 @@ public:
 
   void postWalkComponents(es::ESCoreBase& core)
   {
-    std::shared_ptr<ren::VBOMan> man = core.getStaticComponent<StaticVBOMan>()->instance_;
-    if (man != nullptr)
-    {
-      man->runGCAgainstVaidIDs(mValidKeys);
-      mValidKeys.clear();
+    std::weak_ptr<ren::VBOMan> man = core.getStaticComponent<StaticVBOMan>()->instance_;
+    if (std::shared_ptr<VBOMan> vboMan = man.lock()) {
+          vboMan->runGCAgainstVaidIDs(mValidKeys);
+          mValidKeys.clear();
     }
     else
     {

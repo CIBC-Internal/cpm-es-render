@@ -138,72 +138,85 @@ void GeomMan::loadAssetCB(const std::string& assetName, bool error,
         geom.textures.emplace_back(texName, samplerName, texUnit);
       }
 
-      std::shared_ptr<VBOMan>  vboMan = core.getStaticComponent<StaticVBOMan>()->instance_;
-      std::shared_ptr<IBOMan>  iboMan = core.getStaticComponent<StaticIBOMan>()->instance_;
-      Tny* meshRoot = Tny_get(doc, "meshes")->value.tny;
-      // A number of meshes doesn't make any sense since we select on the asset
-      // name in the IBO and VBO.
-      for (uint32_t i = 0; i < numMeshes; i++)
-      {
-        meshRoot = Tny_next(meshRoot);
-        Tny* meshDict = meshRoot->value.tny;
+      std::weak_ptr<VBOMan>  vm = core.getStaticComponent<StaticVBOMan>()->instance_;
+      std::weak_ptr<IBOMan>  im = core.getStaticComponent<StaticIBOMan>()->instance_;
 
-        // Retrieve the attributes stored in the mesh's vertex buffer.
-        Tny* attributeRoot = Tny_get(meshDict, "attrib_list")->value.tny;
-        attributeRoot = Tny_next(attributeRoot);
+      if (std::shared_ptr<VBOMan> vboMan = vm.lock()) {
+          if (std::shared_ptr<IBOMan> iboMan = im.lock()) {
+              Tny* meshRoot = Tny_get(doc, "meshes")->value.tny;
+              // A number of meshes doesn't make any sense since we select on the asset
+              // name in the IBO and VBO.
+              for (uint32_t i = 0; i < numMeshes; i++)
+              {
+                meshRoot = Tny_next(meshRoot);
+                Tny* meshDict = meshRoot->value.tny;
 
-        // Retrieve the attributes in the geometry.
-        int32_t numAttribs = 0;
-        attributeRoot = CPM_ES_CEREAL_NS::CST_detail::inInt32Array(attributeRoot, numAttribs);
+                // Retrieve the attributes stored in the mesh's vertex buffer.
+                Tny* attributeRoot = Tny_get(meshDict, "attrib_list")->value.tny;
+                attributeRoot = Tny_next(attributeRoot);
 
-        std::vector<std::tuple<std::string, size_t, bool>> attribs;
-        for (int32_t ii = 0; ii < numAttribs; ii++)
-        {
-          std::string attribName;
-          int32_t attribSize;
-          bool normalize;
-          attributeRoot = CPM_ES_CEREAL_NS::CST_detail::inStringArray(attributeRoot, tmpName, tmpNameSize);
-          attribName = tmpName;
-          attributeRoot = CPM_ES_CEREAL_NS::CST_detail::inInt32Array(attributeRoot, attribSize);
-          attributeRoot = CPM_ES_CEREAL_NS::CST_detail::inBoolArray(attributeRoot, normalize);
-          attribs.push_back(std::make_tuple(attribName, attribSize, normalize));
-        }
+                // Retrieve the attributes in the geometry.
+                int32_t numAttribs = 0;
+                attributeRoot = CPM_ES_CEREAL_NS::CST_detail::inInt32Array(
+                            attributeRoot, numAttribs);
 
-        // Retrieve the number of vertices. Even though we really don't use
-        // the number of vertices.
-        uint32_t numVertices;
-        CPM_ES_CEREAL_NS::CerealSerializeType<uint32_t>::in(meshDict, "num_vertices", numVertices);
+                std::vector<std::tuple<std::string, size_t, bool>> attribs;
+                for (int32_t ii = 0; ii < numAttribs; ii++)
+                {
+                  std::string attribName;
+                  int32_t attribSize;
+                  bool normalize;
+                  attributeRoot = CPM_ES_CEREAL_NS::CST_detail::inStringArray(
+                              attributeRoot, tmpName, tmpNameSize);
+                  attribName = tmpName;
+                  attributeRoot = CPM_ES_CEREAL_NS::CST_detail::inInt32Array(
+                              attributeRoot, attribSize);
+                  attributeRoot = CPM_ES_CEREAL_NS::CST_detail::inBoolArray(
+                              attributeRoot, normalize);
+                  attribs.push_back(std::make_tuple(attribName, attribSize, normalize));
+                }
 
-        // Retrieve and install binary data.
-        Tny* vboData = Tny_get(meshDict, "vbo");
-        GLuint vboID = vboMan->hasVBO(assetName);
-        if (vboID == 0)
-          vboID = vboMan->addInMemoryVBO(vboData->value.ptr, vboData->size, attribs, assetName);
+                // Retrieve the number of vertices. Even though we really don't use
+                // the number of vertices.
+                uint32_t numVertices;
+                CPM_ES_CEREAL_NS::CerealSerializeType<uint32_t>::in(
+                            meshDict, "num_vertices", numVertices);
 
-        if (vboID == 0)
-        {
-          std::cerr << "GeomMan: Unable to generate appropriate VBO." << std::endl;
-        }
+                // Retrieve and install binary data.
+                Tny* vboData = Tny_get(meshDict, "vbo");
+                GLuint vboID = vboMan->hasVBO(assetName);
+                if (vboID == 0)
+                  vboID = vboMan->addInMemoryVBO(vboData->value.ptr,
+                                                 vboData->size, attribs, assetName);
 
-        // Retrieve and create ibo (if not already created).
-        Tny* iboData = Tny_get(meshDict, "ibo");
-        GLuint iboID = iboMan->hasIBO(assetName);
-        if (iboID == 0)
-          iboID = iboMan->addInMemoryIBO(iboData->value.ptr, iboData->size,
-                                        GL_TRIANGLES, GL_UNSIGNED_SHORT, 
-                                        iboData->size / sizeof(uint16_t), assetName);
+                if (vboID == 0)
+                {
+                  std::cerr << "GeomMan: Unable to generate appropriate VBO." << std::endl;
+                }
 
-        if (iboID == 0)
-        {
-          std::cerr << "GeomMan: Unable to generate appropriate IBO." << std::endl;
-        }
+                // Retrieve and create ibo (if not already created).
+                Tny* iboData = Tny_get(meshDict, "ibo");
+                GLuint iboID = iboMan->hasIBO(assetName);
+                if (iboID == 0)
+                  iboID = iboMan->addInMemoryIBO(iboData->value.ptr, iboData->size,
+                                                GL_TRIANGLES, GL_UNSIGNED_SHORT,
+                                                iboData->size / sizeof(uint16_t), assetName);
 
-        // We are done. Now the promise fulfillment system will locate and add
-        // the appropriate VBO, IBO, shader, and textures.
+                if (iboID == 0)
+                {
+                  std::cerr << "GeomMan: Unable to generate appropriate IBO." << std::endl;
+                }
+
+                // We are done. Now the promise fulfillment system will locate and add
+                // the appropriate VBO, IBO, shader, and textures.
+              }
+              mNameMap.insert(std::make_pair(assetName, geom));
+
+              Tny_free(doc);
+
+
+          }
       }
-      mNameMap.insert(std::make_pair(assetName, geom));
-
-      Tny_free(doc);
     }
     else
     {
@@ -264,59 +277,71 @@ bool GeomMan::buildComponent(CPM_ES_CEREAL_NS::CerealCore& core,
     component.setAssetName(assetName.c_str());
     core.addComponent(entityID, component);
 
-    std::shared_ptr<VBOMan> vboMan = core.getStaticComponent<StaticVBOMan>()->instance_;
-    std::shared_ptr<IBOMan> iboMan = core.getStaticComponent<StaticIBOMan>()->instance_;
+    std::weak_ptr<VBOMan>  vm = core.getStaticComponent<StaticVBOMan>()->instance_;
+    std::weak_ptr<IBOMan>  im = core.getStaticComponent<StaticIBOMan>()->instance_;
 
-    // VBO and IBO
-    ren::VBO vbo;
-    vbo.glid = vboMan->hasVBO(assetName);
-    if (vbo.glid == 0)
-    {
-      std::cerr << "GeomMan: Failed VBO promise. No VBO present." << std::endl;
+    if (std::shared_ptr<VBOMan> vboMan = vm.lock()) {
+        if (std::shared_ptr<IBOMan> iboMan = im.lock()) {
+
+            // VBO and IBO
+            ren::VBO vbo;
+            vbo.glid = vboMan->hasVBO(assetName);
+            if (vbo.glid == 0)
+            {
+              std::cerr << "GeomMan: Failed VBO promise. No VBO present." << std::endl;
+            }
+
+            ren::IBO ibo;
+            ibo.glid = iboMan->hasIBO(assetName);
+            if (ibo.glid == 0)
+            {
+              std::cerr << "GeomMan: Failed VBO promise. No VBO present." << std::endl;
+            }
+
+            if (vbo.glid != 0 && ibo.glid != 0)
+            {
+              core.addComponent(entityID, vbo);
+
+              // Retrieve IBO data.
+              const IBOMan::IBOData& data = iboMan->getIBOData(assetName);
+              ibo.primMode = data.primMode;
+              ibo.primType = data.primType;
+              ibo.numPrims = data.numPrims;
+              core.addComponent(entityID, ibo);
+            }
+
+            auto geomAsset = mNameMap.find(assetName);
+            if (geomAsset != mNameMap.end())
+            {
+              const GeomMan::GeomItem& geomItem = geomAsset->second;
+              // Shader (will be loaded if necessary).
+              std::weak_ptr<ShaderMan> sm =
+                      core.getStaticComponent<StaticShaderMan>()->instance_;
+              if (std::shared_ptr<ShaderMan> shaderMan = sm.lock()) {
+                    shaderMan->loadVertexAndFragmentShader(core, entityID, geomItem.shaderName);
+              }
+              // Textures (will be loaded if necessary).
+              std::weak_ptr<TextureMan> tm =
+                      core.getStaticComponent<StaticTextureMan>()->instance_;
+              if (std::shared_ptr<TextureMan> texMan = tm.lock()) {
+                  for (const GeomMan::GeomItem::TextureItem& texItem : geomItem.textures)
+                  {
+                    texMan->loadTexture(core, entityID, texItem.name,
+                                       static_cast<int32_t>(texItem.textureUnit),
+                                       texItem.samplerName);
+                  }
+              }
+            }
+            else
+            {
+              std::cerr << "GeomMan: Failed asset promise. " <<
+                           "Couldn't find asset in map." << std::endl;
+            }
+
+            return true;  // We want to clear the promise regardless of failures.
+        }
     }
-
-    ren::IBO ibo;
-    ibo.glid = iboMan->hasIBO(assetName);
-    if (ibo.glid == 0)
-    {
-      std::cerr << "GeomMan: Failed VBO promise. No VBO present." << std::endl;
-    }
-
-    if (vbo.glid != 0 && ibo.glid != 0)
-    {
-      core.addComponent(entityID, vbo);
-
-      // Retrieve IBO data.
-      const IBOMan::IBOData& data = iboMan->getIBOData(assetName);
-      ibo.primMode = data.primMode;
-      ibo.primType = data.primType;
-      ibo.numPrims = data.numPrims;
-      core.addComponent(entityID, ibo);
-    }
-
-    auto geomAsset = mNameMap.find(assetName);
-    if (geomAsset != mNameMap.end())
-    {
-      const GeomMan::GeomItem& geomItem = geomAsset->second;
-      // Shader (will be loaded if necessary).
-      std::shared_ptr<ShaderMan> shaderMan = core.getStaticComponent<StaticShaderMan>()->instance_;
-      shaderMan->loadVertexAndFragmentShader(core, entityID, geomItem.shaderName);
-
-      // Textures (will be loaded if necessary).
-      std::shared_ptr<TextureMan> texMan = core.getStaticComponent<StaticTextureMan>()->instance_;
-      for (const GeomMan::GeomItem::TextureItem& texItem : geomItem.textures)
-      {
-        texMan->loadTexture(core, entityID, texItem.name,
-                           static_cast<int32_t>(texItem.textureUnit),
-                           texItem.samplerName);
-      }
-    }
-    else
-    {
-      std::cerr << "GeomMan: Failed asset promise. Couldn't find asset in map." << std::endl;
-    }
-
-    return true;  // We want to clear the promise regardless of failures.
+    return false;
   }
   else
   {
@@ -354,25 +379,25 @@ public:
 
   void postWalkComponents(es::ESCoreBase& core)
   {
-    std::shared_ptr<GeomMan> man = core.getStaticComponent<StaticGeomMan>()->instance_;
-    if (man == nullptr)
-    {
-      std::cerr << "Unable to complete geom fulfillment. There is no StaticGeomMan." << std::endl;
-      return;
-    }
-    if (mAssetsAwaitingRequest.size() > 0)
-    {
-      std::set<std::string> assetsWithNoRequest;
-      // Compute set difference and initiate requests for appropriate
-      // components.
-      std::set_difference(mAssetsAwaitingRequest.begin(), mAssetsAwaitingRequest.end(),
-                          mAssetsAlreadyRequested.begin(), mAssetsAlreadyRequested.end(),
-                          std::inserter(assetsWithNoRequest, assetsWithNoRequest.end()));
+    std::weak_ptr<GeomMan> gm = core.getStaticComponent<StaticGeomMan>()->instance_;
+    if (std::shared_ptr<GeomMan> man = gm.lock()) {
+        if (mAssetsAwaitingRequest.size() > 0)
+        {
+          std::set<std::string> assetsWithNoRequest;
+          // Compute set difference and initiate requests for appropriate
+          // components.
+          std::set_difference(mAssetsAwaitingRequest.begin(), mAssetsAwaitingRequest.end(),
+                              mAssetsAlreadyRequested.begin(), mAssetsAlreadyRequested.end(),
+                              std::inserter(assetsWithNoRequest, assetsWithNoRequest.end()));
 
-      for (const std::string& asset : assetsWithNoRequest)
-      {
-        man->requestAsset(core, asset, man->mNumRetries);
-      }
+          for (const std::string& asset : assetsWithNoRequest)
+          {
+            man->requestAsset(core, asset, man->mNumRetries);
+          }
+        }
+    } else {
+        std::cerr << "Unable to complete geom fulfillment. " <<
+                     "There is no StaticGeomMan." << std::endl;
     }
   }
 
@@ -380,55 +405,58 @@ public:
                const es::ComponentGroup<GeomPromise>& promisesGroup,
                const es::ComponentGroup<StaticGeomMan>& geomManGroup) override
   {
-    std::shared_ptr<GeomMan> geomMan = geomManGroup.front().instance_;
+    std::weak_ptr<GeomMan> gm = geomManGroup.front().instance_;
+    if (std::shared_ptr<GeomMan> geomMan = gm.lock()) {
 
-    CPM_ES_CEREAL_NS::CerealCore* ourCorePtr = dynamic_cast<CPM_ES_CEREAL_NS::CerealCore*>(&core);
-    if (ourCorePtr == nullptr)
-    {
-      std::cerr << "Unable to execute geom promise fulfillment. Bad cast." << std::endl;
-      return;
-    }
-    CPM_ES_CEREAL_NS::CerealCore& ourCore = *ourCorePtr;
-
-    int index = 0;
-    for (const GeomPromise& p : promisesGroup)
-    {
-      // Check to see if this promise has been fulfilled. If it has, then
-      // remove it and create the appropriate component for the indicated
-      // entity.
-      if (geomMan->buildComponent(ourCore, entityID, p.assetName))
-      {
-        // Remove this promise, and add a geom component to this promises'
-        // entityID. It is safe to remove components while we are using a
-        // system - addition / removal / modification doesn't happen until
-        // a renormalization step.
-        ourCore.removeComponentAtIndexT<GeomPromise>(entityID, index);
-      }
-      else
-      {
-        // The asset has not be loaded. Check to see if a request has
-        // been initiated for the assets; if not, then run the request.
-        // (this can happen when we serialize the game while we are
-        // still waiting for assets).
-        if (p.requestInitiated == false)
+        CPM_ES_CEREAL_NS::CerealCore* ourCorePtr =
+                dynamic_cast<CPM_ES_CEREAL_NS::CerealCore*>(&core);
+        if (ourCorePtr == nullptr)
         {
-          // Modify pre-existing promise to indicate that we are following
-          // up with the promise. But, we don't initiate the request yet
-          // since another promise may have already done so. We wait until
-          // postWalkComponents to make a decision.
-          GeomPromise newPromise = p;
-          newPromise.requestInitiated = true;
-          promisesGroup.modify(newPromise, static_cast<size_t>(index));
-
-          mAssetsAwaitingRequest.insert(std::string(newPromise.assetName));
+          std::cerr << "Unable to execute geom promise fulfillment. Bad cast." << std::endl;
+          return;
         }
-        else
+        CPM_ES_CEREAL_NS::CerealCore& ourCore = *ourCorePtr;
+
+        int index = 0;
+        for (const GeomPromise& p : promisesGroup)
         {
-          mAssetsAlreadyRequested.insert(std::string(p.assetName));
-        }
-      }
+          // Check to see if this promise has been fulfilled. If it has, then
+          // remove it and create the appropriate component for the indicated
+          // entity.
+          if (geomMan->buildComponent(ourCore, entityID, p.assetName))
+          {
+            // Remove this promise, and add a geom component to this promises'
+            // entityID. It is safe to remove components while we are using a
+            // system - addition / removal / modification doesn't happen until
+            // a renormalization step.
+            ourCore.removeComponentAtIndexT<GeomPromise>(entityID, index);
+          }
+          else
+          {
+            // The asset has not be loaded. Check to see if a request has
+            // been initiated for the assets; if not, then run the request.
+            // (this can happen when we serialize the game while we are
+            // still waiting for assets).
+            if (p.requestInitiated == false)
+            {
+              // Modify pre-existing promise to indicate that we are following
+              // up with the promise. But, we don't initiate the request yet
+              // since another promise may have already done so. We wait until
+              // postWalkComponents to make a decision.
+              GeomPromise newPromise = p;
+              newPromise.requestInitiated = true;
+              promisesGroup.modify(newPromise, static_cast<size_t>(index));
 
-      ++index;
+              mAssetsAwaitingRequest.insert(std::string(newPromise.assetName));
+            }
+            else
+            {
+              mAssetsAlreadyRequested.insert(std::string(p.assetName));
+            }
+          }
+
+          ++index;
+        }
     }
   }
 };
@@ -505,14 +533,14 @@ public:
 
   void postWalkComponents(es::ESCoreBase& core)
   {
-    std::shared_ptr<GeomMan> man = core.getStaticComponent<StaticGeomMan>()->instance_;
-    if (man == nullptr)
-    {
-      std::cerr << "Unable to complete geom garbage collection. There is no StaticGeomMan." << std::endl;
-      return;
+    std::weak_ptr<GeomMan> gm = core.getStaticComponent<StaticGeomMan>()->instance_;
+    if (std::shared_ptr<GeomMan> geomMan = gm.lock()) {
+        geomMan->runGCAgainstVaidNames(mValidKeys);
+        mValidKeys.clear();
+    } else {
+          std::cerr << "Unable to complete geom garbage collection. "
+                    << "There is no StaticGeomMan." << std::endl;
     }
-    man->runGCAgainstVaidNames(mValidKeys);
-    mValidKeys.clear();
   }
 
   void execute(es::ESCoreBase&, uint64_t /* entityID */, const Geom* geom) override

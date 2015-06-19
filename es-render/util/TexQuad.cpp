@@ -41,61 +41,64 @@ void setTexQuadTransform(CPM_ES_CEREAL_NS::CerealCore& core, uint64_t entityID, 
 
 std::pair<ren::VBO, ren::IBO> getTexUnitQuad(CPM_ES_NS::ESCoreBase& core)
 {
-  std::shared_ptr<ren::VBOMan> vboMan = core.getStaticComponent<ren::StaticVBOMan>()->instance_;
-  std::shared_ptr<ren::IBOMan> iboMan = core.getStaticComponent<ren::StaticIBOMan>()->instance_;
-
-  const std::string assetName = "_g_uquad";
-
-  GLuint vbo = vboMan->hasVBO(assetName);
-  if (vbo == 0)
-  {
-    // Build the vertex buffer object and add it to the vbo manager.
-    // Build a VBO.
-    const size_t vboFloatSize = 4*5;
-    float vboData[vboFloatSize] =
-    {
-      // Position           UV coords
-      -1.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-       1.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-      -1.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-       1.0f, -1.0f,  0.0f,  1.0f, 1.0f
-    };
-    size_t vboByteSize = vboFloatSize * sizeof(float);
-
-    vbo = vboMan->addInMemoryVBO(
-        static_cast<void*>(vboData), vboByteSize,
-        { std::make_tuple("aPos", 3 * sizeof(float), false),
-          std::make_tuple("aUV0", 2 * sizeof(float), false) },
-        assetName);
-  }
-
-  // Build VBO component to add to the entityID.
   ren::VBO vboComp;
-  vboComp.glid = vbo;
-
-  const size_t iboIntSize = 6;
   ren::IBO iboComp;
-  iboComp.primType = GL_UNSIGNED_SHORT;
-  iboComp.primMode = GL_TRIANGLES;
-  iboComp.numPrims = iboIntSize;
+  std::weak_ptr<ren::VBOMan> vm = core.getStaticComponent<ren::StaticVBOMan>()->instance_;
+  std::weak_ptr<ren::IBOMan> im = core.getStaticComponent<ren::StaticIBOMan>()->instance_;
 
-  GLuint ibo = iboMan->hasIBO(assetName);
-  if (ibo == 0)
-  {
-    // Build an IBO
-    uint16_t iboData[iboIntSize] =
-    {
-      0, 1, 2, 2, 1, 3
-    };
-    size_t iboByteSize = iboIntSize * sizeof(uint16_t);
+  if (std::shared_ptr<ren::VBOMan> vboMan = vm.lock()) {
+      if (std::shared_ptr<ren::IBOMan> iboMan = im.lock()) {
+          const std::string assetName = "_g_uquad";
 
-    ibo = iboMan->addInMemoryIBO(static_cast<void*>(iboData), iboByteSize,
-                                iboComp.primMode, iboComp.primType,
-                                iboComp.numPrims, assetName);
+          GLuint vbo = vboMan->hasVBO(assetName);
+          if (vbo == 0)
+          {
+            // Build the vertex buffer object and add it to the vbo manager.
+            // Build a VBO.
+            const size_t vboFloatSize = 4*5;
+            float vboData[vboFloatSize] =
+            {
+              // Position           UV coords
+              -1.0f,  1.0f,  0.0f,  0.0f, 0.0f,
+               1.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+              -1.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+               1.0f, -1.0f,  0.0f,  1.0f, 1.0f
+            };
+            size_t vboByteSize = vboFloatSize * sizeof(float);
+
+            vbo = vboMan->addInMemoryVBO(
+                static_cast<void*>(vboData), vboByteSize,
+                { std::make_tuple("aPos", 3 * sizeof(float), false),
+                  std::make_tuple("aUV0", 2 * sizeof(float), false) },
+                assetName);
+          }
+
+          // Build VBO component to add to the entityID.
+          vboComp.glid = vbo;
+
+          const size_t iboIntSize = 6;
+          iboComp.primType = GL_UNSIGNED_SHORT;
+          iboComp.primMode = GL_TRIANGLES;
+          iboComp.numPrims = iboIntSize;
+
+          GLuint ibo = iboMan->hasIBO(assetName);
+          if (ibo == 0)
+          {
+            // Build an IBO
+            uint16_t iboData[iboIntSize] =
+            {
+              0, 1, 2, 2, 1, 3
+            };
+            size_t iboByteSize = iboIntSize * sizeof(uint16_t);
+
+            ibo = iboMan->addInMemoryIBO(static_cast<void*>(iboData), iboByteSize,
+                                        iboComp.primMode, iboComp.primType,
+                                        iboComp.numPrims, assetName);
+          }
+
+          iboComp.glid = ibo;
+      }
   }
-
-  iboComp.glid = ibo;
-
   return std::make_pair(vboComp, iboComp);
 }
 

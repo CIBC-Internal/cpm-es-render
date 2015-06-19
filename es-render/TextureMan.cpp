@@ -423,22 +423,24 @@ public:
       std::cerr << "Unable to complete texture fulfillment. There is no StaticTextureMan." << std::endl;
       return;
     }
-    std::shared_ptr<TextureMan> textureMan = man->instance_;
-    textureMan->mNewUnfulfilledAssets = false;
+    std::weak_ptr<TextureMan> tm = man->instance_;
+    if (std::shared_ptr<TextureMan> textureMan = tm.lock()) {
+        textureMan->mNewUnfulfilledAssets = false;
 
-    if (mAssetsAwaitingRequest.size() > 0)
-    {
-      std::set<std::string> assetsWithNoRequest;
-      // Compute set difference and initiate requests for appropriate
-      // components.
-      std::set_difference(mAssetsAwaitingRequest.begin(), mAssetsAwaitingRequest.end(),
-                          mAssetsAlreadyRequested.begin(), mAssetsAlreadyRequested.end(),
-                          std::inserter(assetsWithNoRequest, assetsWithNoRequest.end()));
+        if (mAssetsAwaitingRequest.size() > 0)
+        {
+          std::set<std::string> assetsWithNoRequest;
+          // Compute set difference and initiate requests for appropriate
+          // components.
+          std::set_difference(mAssetsAwaitingRequest.begin(), mAssetsAwaitingRequest.end(),
+                              mAssetsAlreadyRequested.begin(), mAssetsAlreadyRequested.end(),
+                              std::inserter(assetsWithNoRequest, assetsWithNoRequest.end()));
 
-      for (const std::string& asset : assetsWithNoRequest)
-      {
-        textureMan->requestTexture(core, asset, textureMan->mNumRetries);
-      }
+          for (const std::string& asset : assetsWithNoRequest)
+          {
+            textureMan->requestTexture(core, asset, textureMan->mNumRetries);
+          }
+        }
     }
   }
 
@@ -446,52 +448,56 @@ public:
                const es::ComponentGroup<TexturePromise>& promisesGroup,
                const es::ComponentGroup<StaticTextureMan>& textureManGroup) override
   {
-    std::shared_ptr<TextureMan> textureMan = textureManGroup.front().instance_;
+    std::weak_ptr<TextureMan> tm = textureManGroup.front().instance_;
+    if (std::shared_ptr<TextureMan> textureMan = tm.lock()) {
 
-    CPM_ES_CEREAL_NS::CerealCore* ourCorePtr = dynamic_cast<CPM_ES_CEREAL_NS::CerealCore*>(&core);
-    if (ourCorePtr == nullptr)
-    {
-      std::cerr << "Unable to execute texture promise fulfillment. Bad cast." << std::endl;
-      return;
-    }
-    CPM_ES_CEREAL_NS::CerealCore& ourCore = *ourCorePtr;
-
-    int index = 0;
-    for (const TexturePromise& p : promisesGroup)
-    {
-      if (textureMan->buildComponent(ourCore, entityID, p.assetName, p.textureUnit, p.uniformName))
-      {
-        // Remove this promise, and add a texture component to this promises'
-        // entityID. It is safe to remove components while we are using a
-        // system - addition / removal / modification doesn't happen until
-        // a renormalization step.
-        ourCore.removeComponentAtIndexT<TexturePromise>(entityID, index);
-      }
-      else
-      {
-        // The asset has not be loaded. Check to see if a request has
-        // been initiated for the assets; if not, then run the request.
-        // (this can happen when we serialize the game while we are
-        // still waiting for assets).
-        if (p.requestInitiated == false)
+        CPM_ES_CEREAL_NS::CerealCore* ourCorePtr =
+                dynamic_cast<CPM_ES_CEREAL_NS::CerealCore*>(&core);
+        if (ourCorePtr == nullptr)
         {
-          // Modify pre-existing promise to indicate that we are following
-          // up with the promise. But, we don't initiate the request yet
-          // since another promise may have already done so. We wait until
-          // postWalkComponents to make a decision.
-          TexturePromise newPromise = p;
-          newPromise.requestInitiated = true;
-          promisesGroup.modify(newPromise, static_cast<size_t>(index));
-
-          mAssetsAwaitingRequest.insert(std::string(newPromise.assetName));
+          std::cerr << "Unable to execute texture promise fulfillment. Bad cast." << std::endl;
+          return;
         }
-        else
+        CPM_ES_CEREAL_NS::CerealCore& ourCore = *ourCorePtr;
+
+        int index = 0;
+        for (const TexturePromise& p : promisesGroup)
         {
-          mAssetsAlreadyRequested.insert(std::string(p.assetName));
-        }
-      }
+          if (textureMan->buildComponent(ourCore, entityID,
+                                         p.assetName, p.textureUnit, p.uniformName))
+          {
+            // Remove this promise, and add a texture component to this promises'
+            // entityID. It is safe to remove components while we are using a
+            // system - addition / removal / modification doesn't happen until
+            // a renormalization step.
+            ourCore.removeComponentAtIndexT<TexturePromise>(entityID, index);
+          }
+          else
+          {
+            // The asset has not be loaded. Check to see if a request has
+            // been initiated for the assets; if not, then run the request.
+            // (this can happen when we serialize the game while we are
+            // still waiting for assets).
+            if (p.requestInitiated == false)
+            {
+              // Modify pre-existing promise to indicate that we are following
+              // up with the promise. But, we don't initiate the request yet
+              // since another promise may have already done so. We wait until
+              // postWalkComponents to make a decision.
+              TexturePromise newPromise = p;
+              newPromise.requestInitiated = true;
+              promisesGroup.modify(newPromise, static_cast<size_t>(index));
 
-      ++index;
+              mAssetsAwaitingRequest.insert(std::string(newPromise.assetName));
+            }
+            else
+            {
+              mAssetsAlreadyRequested.insert(std::string(p.assetName));
+            }
+          }
+
+          ++index;
+        }
     }
   }
 };
@@ -592,10 +598,11 @@ public:
       std::cerr << "Unable to complete texture garbage collection. There is no StaticTextureMan." << std::endl;
       return;
     }
-    std::shared_ptr<TextureMan> texMan = man->instance_;
-
-    texMan->runGCAgainstVaidIDs(mValidKeys);
-    mValidKeys.clear();
+    std::weak_ptr<TextureMan> tm = man->instance_;
+    if (std::shared_ptr<TextureMan> texMan = tm.lock()) {
+        texMan->runGCAgainstVaidIDs(mValidKeys);
+        mValidKeys.clear();
+    }
   }
 
   void execute(es::ESCoreBase&, uint64_t /* entityID */, const Texture* tex) override
