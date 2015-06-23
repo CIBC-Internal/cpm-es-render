@@ -38,19 +38,17 @@ struct Shader
 
       return false; // We do not want to add this shader component back into the components.
                     // Instead we rely on the shader promise we created above.
-    }
-    else
-    {
+    } else {
       CPM_ES_CEREAL_NS::CerealCore& core 
           = dynamic_cast<CPM_ES_CEREAL_NS::CerealCore&>(s.getCore());
-      StaticShaderMan* staticSM = core.getStaticComponent<StaticShaderMan>();
-      ShaderMan& shaderMan = *staticSM->instance;
-
-      // Find the asset name associated with our glid and serialize it out.
-      std::string assetName = shaderMan.getAssetFromID(glid);
-      s.serialize("name", assetName);
-
-      return true;
+      std::weak_ptr<ShaderMan> sm = core.getStaticComponent<StaticShaderMan>()->instance_;
+      if (std::shared_ptr<ShaderMan> shaderMan = sm.lock()) {
+          // Find the asset name associated with our glid and serialize it out.
+          std::string assetName = shaderMan->getAssetFromID(glid);
+          s.serialize("name", assetName);
+          return true;
+      }
+      return false;
     }
   }
 };

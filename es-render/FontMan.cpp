@@ -185,30 +185,34 @@ bool FontMan::buildComponent(CPM_ES_CEREAL_NS::CerealCore& core, uint64_t entity
       rootAssetName = assetName.substr(0, slashIdx + 1);
     }
 
-    TextureMan& texMan = *core.getStaticComponent<StaticTextureMan>()->instance;
-    const FontMan::FontInfo& info = getFontInfo(id);
-    const BMFont::PageBlock& pageBlock = info.fontInfo.getPageBlock();
-    for (size_t i = 0; i < pageBlock.pages.size(); ++i)
-    {
-      // Extract texture name and replace filename in asset with this
-      // texture name? Or should we just replace this asset's file
-      // extension and make that the thing?
-      std::string textureName = rootAssetName + pageBlock.pages[i];
+    std::weak_ptr<TextureMan> tm =
+            core.getStaticComponent<StaticTextureMan>()->instance_;
+    if (std::shared_ptr<TextureMan> texMan = tm.lock()) {
+        const FontMan::FontInfo& info = getFontInfo(id);
+        const BMFont::PageBlock& pageBlock = info.fontInfo.getPageBlock();
+        for (size_t i = 0; i < pageBlock.pages.size(); ++i)
+        {
+          // Extract texture name and replace filename in asset with this
+          // texture name? Or should we just replace this asset's file
+          // extension and make that the thing?
+          std::string textureName = rootAssetName + pageBlock.pages[i];
 
-      // Ensure the texture has the appropriate itx extension.
-      std::string::size_type dotIdx = textureName.rfind('.');
-      if (dotIdx != std::string::npos)
-      {
-        textureName = textureName.substr(0, dotIdx);
-      }
-      textureName += ".itx";
+          // Ensure the texture has the appropriate itx extension.
+          std::string::size_type dotIdx = textureName.rfind('.');
+          if (dotIdx != std::string::npos)
+          {
+            textureName = textureName.substr(0, dotIdx);
+          }
+          textureName += ".itx";
 
-      std::stringstream ss;
-      ss << "uTX" << i;
-      texMan.loadTexture(core, entityID, textureName, static_cast<int32_t>(i), ss.str());
+          std::stringstream ss;
+          ss << "uTX" << i;
+          texMan->loadTexture(core, entityID, textureName, static_cast<int32_t>(i), ss.str());
+        }
+
+        return true;
     }
-
-    return true;
+    return false;
   }
   else
   {
@@ -252,22 +256,24 @@ public:
       std::cerr << "Unable to complete font fulfillment. There is no StaticFontMan." << std::endl;
       return;
     }
-    FontMan& fontMan = *man->instance;
-    fontMan.mNewUnfulfilledAssets = false;
+    std::weak_ptr<FontMan>  fm = man->instance_;
+    if (std::shared_ptr<FontMan> fontMan = fm.lock()) {
+        fontMan->mNewUnfulfilledAssets = false;
 
-    if (mAssetsAwaitingRequest.size() > 0)
-    {
-      std::set<std::string> assetsWithNoRequest;
-      // Compute set difference and initiate requests for appropriate
-      // components.
-      std::set_difference(mAssetsAwaitingRequest.begin(), mAssetsAwaitingRequest.end(),
-                          mAssetsAlreadyRequested.begin(), mAssetsAlreadyRequested.end(),
-                          std::inserter(assetsWithNoRequest, assetsWithNoRequest.end()));
+        if (mAssetsAwaitingRequest.size() > 0)
+        {
+          std::set<std::string> assetsWithNoRequest;
+          // Compute set difference and initiate requests for appropriate
+          // components.
+          std::set_difference(mAssetsAwaitingRequest.begin(), mAssetsAwaitingRequest.end(),
+                              mAssetsAlreadyRequested.begin(), mAssetsAlreadyRequested.end(),
+                              std::inserter(assetsWithNoRequest, assetsWithNoRequest.end()));
 
-      for (const std::string& asset : assetsWithNoRequest)
-      {
-        fontMan.requestFont(core, asset, fontMan.mNumRetries);
-      }
+          for (const std::string& asset : assetsWithNoRequest)
+          {
+            fontMan->requestFont(core, asset, fontMan->mNumRetries);
+          }
+        }
     }
   }
 
@@ -275,56 +281,59 @@ public:
                const es::ComponentGroup<FontPromise>& promisesGroup,
                const es::ComponentGroup<StaticFontMan>& fontManGroup) override
   {
-    FontMan& fontMan = *fontManGroup.front().instance;
+    std::weak_ptr<FontMan> fm = fontManGroup.front().instance_;
+    if (std::shared_ptr<FontMan> fontMan = fm.lock()) {
 
-    CPM_ES_CEREAL_NS::CerealCore* ourCorePtr = dynamic_cast<CPM_ES_CEREAL_NS::CerealCore*>(&core);
-    if (ourCorePtr == nullptr)
-    {
-      std::cerr << "Unable to execute font promise fulfillment. Bad cast." << std::endl;
-      return;
-    }
-    CPM_ES_CEREAL_NS::CerealCore& ourCore = *ourCorePtr;
-
-    int index = 0;
-    for (const FontPromise& p : promisesGroup)
-    {
-      // Check to see if this promise has been fulfilled. If it has, then
-      // remove it and create the appropriate component for the indicated
-      // entity.
-      if (fontMan.buildComponent(ourCore, entityID, p.assetName))
-      {
-        // Remove this promise, and add a font component to this promises'
-        // entityID. It is safe to remove components while we are using a
-        // system - addition / removal / modification doesn't happen until
-        // a renormalization step.
-        ourCore.removeComponentAtIndexT<FontPromise>(entityID, index);
-      }
-      else
-      {
-        // The asset has not be loaded. Check to see if a request has
-        // been initiated for the assets; if not, then run the request.
-        // (this can happen when we serialize the game while we are
-        // still waiting for assets).
-        if (p.requestInitiated == false)
+        CPM_ES_CEREAL_NS::CerealCore* ourCorePtr =
+                dynamic_cast<CPM_ES_CEREAL_NS::CerealCore*>(&core);
+        if (ourCorePtr == nullptr)
         {
-          // Modify pre-existing promise to indicate that we are following
-          // up with the promise. But, we don't initiate the request yet
-          // since another promise may have already done so. We wait until
-          // postWalkComponents to make a decision.
-          FontPromise newPromise = p;
-          newPromise.requestInitiated = true;
-          promisesGroup.modify(newPromise, static_cast<size_t>(index));
-
-          mAssetsAwaitingRequest.insert(std::string(newPromise.assetName));
+          std::cerr << "Unable to execute font promise fulfillment. Bad cast." << std::endl;
+          return;
         }
-        else
+        CPM_ES_CEREAL_NS::CerealCore& ourCore = *ourCorePtr;
+
+        int index = 0;
+        for (const FontPromise& p : promisesGroup)
         {
-          mAssetsAlreadyRequested.insert(std::string(p.assetName));
+          // Check to see if this promise has been fulfilled. If it has, then
+          // remove it and create the appropriate component for the indicated
+          // entity.
+          if (fontMan->buildComponent(ourCore, entityID, p.assetName))
+          {
+            // Remove this promise, and add a font component to this promises'
+            // entityID. It is safe to remove components while we are using a
+            // system - addition / removal / modification doesn't happen until
+            // a renormalization step.
+            ourCore.removeComponentAtIndexT<FontPromise>(entityID, index);
+          }
+          else
+          {
+            // The asset has not be loaded. Check to see if a request has
+            // been initiated for the assets; if not, then run the request.
+            // (this can happen when we serialize the game while we are
+            // still waiting for assets).
+            if (p.requestInitiated == false)
+            {
+              // Modify pre-existing promise to indicate that we are following
+              // up with the promise. But, we don't initiate the request yet
+              // since another promise may have already done so. We wait until
+              // postWalkComponents to make a decision.
+              FontPromise newPromise = p;
+              newPromise.requestInitiated = true;
+              promisesGroup.modify(newPromise, static_cast<size_t>(index));
+
+              mAssetsAwaitingRequest.insert(std::string(newPromise.assetName));
+            }
+            else
+            {
+              mAssetsAlreadyRequested.insert(std::string(p.assetName));
+            }
+          }
+
+          ++index;
         }
       }
-
-      ++index;
-    }
   }
 };
 
@@ -406,10 +415,12 @@ public:
       std::cerr << "Unable to complete texture garbage collection. There is no StaticFontMan." << std::endl;
       return;
     }
-    FontMan& texMan = *man->instance;
+    std::weak_ptr<FontMan>  fm = man->instance_;
 
-    texMan.runGCAgainstVaidIDs(mValidKeys);
-    mValidKeys.clear();
+    if (std::shared_ptr<FontMan> fontMan = fm.lock()) {
+        fontMan->runGCAgainstVaidIDs(mValidKeys);
+        mValidKeys.clear();
+    }
   }
 
   void execute(es::ESCoreBase&, uint64_t /* entityID */, const Font* font) override

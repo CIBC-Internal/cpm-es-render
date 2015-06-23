@@ -297,28 +297,26 @@ public:
 
   void postWalkComponents(es::ESCoreBase& core)
   {
-    StaticShaderMan* man = core.getStaticComponent<StaticShaderMan>();
-    if (man == nullptr)
-    {
-      std::cerr << "Unable to complete shader fulfillment. There is no StaticShaderMan." << std::endl;
-      return;
-    }
-    ShaderMan& shaderMan = *man->instance;
-    shaderMan.mNewUnfulfilledAssets = false;
+    std::weak_ptr<ShaderMan> sm = core.getStaticComponent<StaticShaderMan>()->instance_;
+    if (std::shared_ptr<ShaderMan> man = sm.lock()) {
+        man->mNewUnfulfilledAssets = false;
 
-    if (mAssetsAwaitingRequest.size() > 0)
-    {
-      std::set<std::string> assetsWithNoRequest;
-      // Compute set difference and initiate requests for appropriate
-      // components.
-      std::set_difference(mAssetsAwaitingRequest.begin(), mAssetsAwaitingRequest.end(),
-                          mAssetsAlreadyRequested.begin(), mAssetsAlreadyRequested.end(),
-                          std::inserter(assetsWithNoRequest, assetsWithNoRequest.end()));
+        if (mAssetsAwaitingRequest.size() > 0)
+        {
+          std::set<std::string> assetsWithNoRequest;
+          // Compute set difference and initiate requests for appropriate
+          // components.
+          std::set_difference(mAssetsAwaitingRequest.begin(), mAssetsAwaitingRequest.end(),
+                              mAssetsAlreadyRequested.begin(), mAssetsAlreadyRequested.end(),
+                              std::inserter(assetsWithNoRequest, assetsWithNoRequest.end()));
 
-      for (const std::string& asset : assetsWithNoRequest)
-      {
-        shaderMan.requestVSandFS(core, asset, shaderMan.mNumRetries);
-      }
+          for (const std::string& asset : assetsWithNoRequest)
+          {
+            man->requestVSandFS(core, asset, man->mNumRetries);
+          }
+        }
+    } else {
+        std::cerr << "Unable to complete shader fulfillment. There is no ShaderMan." << std::endl;
     }
   }
 
@@ -326,55 +324,56 @@ public:
                const es::ComponentGroup<ShaderPromiseVF>& promisesGroup,
                const es::ComponentGroup<StaticShaderMan>& shaderManGroup) override
   {
-    ShaderMan& shaderMan = *shaderManGroup.front().instance;
-
-    CPM_ES_CEREAL_NS::CerealCore* ourCorePtr = dynamic_cast<CPM_ES_CEREAL_NS::CerealCore*>(&core);
-    if (ourCorePtr == nullptr)
-    {
-      std::cerr << "Unable to execute shader promise fulfillment. Bad cast." << std::endl;
-      return;
-    }
-    CPM_ES_CEREAL_NS::CerealCore& ourCore = *ourCorePtr;
-
-    int index = 0;
-    for (const ShaderPromiseVF& p : promisesGroup)
-    {
-      // Check to see if this promise has been fulfilled. If it has, then
-      // remove it and create the appropriate component for the indicated
-      // entity.
-      if (shaderMan.buildComponent(ourCore, entityID, p.assetName))
-      {
-        // Remove this promise, and add a shader component to this promises'
-        // entityID. It is safe to remove components while we are using a
-        // system - addition / removal / modification doesn't happen until
-        // a renormalization step.
-        ourCore.removeComponentAtIndexT<ShaderPromiseVF>(entityID, index);
-      }
-      else
-      {
-        // The asset has not be loaded. Check to see if a request has
-        // been initiated for the assets; if not, then run the request.
-        // (this can happen when we serialize the game while we are
-        // still waiting for assets).
-        if (p.requestInitiated == false)
+    std::weak_ptr<ShaderMan> sm = shaderManGroup.front().instance_;
+    if (std::shared_ptr<ShaderMan> shaderMan = sm.lock()) {
+        CPM_ES_CEREAL_NS::CerealCore* ourCorePtr = dynamic_cast<CPM_ES_CEREAL_NS::CerealCore*>(&core);
+        if (ourCorePtr == nullptr)
         {
-          // Modify pre-existing promise to indicate that we are following
-          // up with the promise. But, we don't initiate the request yet
-          // since another promise may have already done so. We wait until
-          // postWalkComponents to make a decision.
-          ShaderPromiseVF newPromise = p;
-          newPromise.requestInitiated = true;
-          promisesGroup.modify(newPromise, static_cast<size_t>(index));
-
-          mAssetsAwaitingRequest.insert(std::string(newPromise.assetName));
+          std::cerr << "Unable to execute shader promise fulfillment. Bad cast." << std::endl;
+          return;
         }
-        else
+        CPM_ES_CEREAL_NS::CerealCore& ourCore = *ourCorePtr;
+
+        int index = 0;
+        for (const ShaderPromiseVF& p : promisesGroup)
         {
-          mAssetsAlreadyRequested.insert(std::string(p.assetName));
-        }
-      }
+          // Check to see if this promise has been fulfilled. If it has, then
+          // remove it and create the appropriate component for the indicated
+          // entity.
+          if (shaderMan->buildComponent(ourCore, entityID, p.assetName))
+          {
+            // Remove this promise, and add a shader component to this promises'
+            // entityID. It is safe to remove components while we are using a
+            // system - addition / removal / modification doesn't happen until
+            // a renormalization step.
+            ourCore.removeComponentAtIndexT<ShaderPromiseVF>(entityID, index);
+          }
+          else
+          {
+            // The asset has not be loaded. Check to see if a request has
+            // been initiated for the assets; if not, then run the request.
+            // (this can happen when we serialize the game while we are
+            // still waiting for assets).
+            if (p.requestInitiated == false)
+            {
+              // Modify pre-existing promise to indicate that we are following
+              // up with the promise. But, we don't initiate the request yet
+              // since another promise may have already done so. We wait until
+              // postWalkComponents to make a decision.
+              ShaderPromiseVF newPromise = p;
+              newPromise.requestInitiated = true;
+              promisesGroup.modify(newPromise, static_cast<size_t>(index));
 
-      ++index;
+              mAssetsAwaitingRequest.insert(std::string(newPromise.assetName));
+            }
+            else
+            {
+              mAssetsAlreadyRequested.insert(std::string(p.assetName));
+            }
+          }
+
+          ++index;
+        }
     }
   }
 };
@@ -466,16 +465,15 @@ public:
 
   void postWalkComponents(es::ESCoreBase& core)
   {
-    StaticShaderMan* man = core.getStaticComponent<StaticShaderMan>();
-    if (man == nullptr)
-    {
-      std::cerr << "Unable to complete shader garbage collection. There is no StaticShaderMan." << std::endl;
-      return;
-    }
-    ShaderMan& shaderMan = *man->instance;
+    std::weak_ptr<ShaderMan> sm = core.getStaticComponent<StaticShaderMan>()->instance_;
+    if (std::shared_ptr<ShaderMan> man = sm.lock()) {
+        man->runGCAgainstVaidIDs(mValidKeys);
+        mValidKeys.clear();
+    } else {
+        std::cerr << "Unable to complete shader garbage collection. " <<
+                     "There is no ShaderMan." << std::endl;
 
-    shaderMan.runGCAgainstVaidIDs(mValidKeys);
-    mValidKeys.clear();
+    }
   }
 
   void execute(es::ESCoreBase&, uint64_t /* entityID */, const Shader* shader) override

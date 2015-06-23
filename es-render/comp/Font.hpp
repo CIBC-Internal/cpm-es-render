@@ -56,15 +56,20 @@ struct Font
       if (core != nullptr)
       {
         StaticFontMan* staticFontMan = core->getStaticComponent<StaticFontMan>();
-        FontMan& fontMan = *staticFontMan->instance;
+        std::weak_ptr<FontMan> fontMan = staticFontMan->instance_;
 
         // Find the asset name associated with our fontID and serialize it out.
-        std::string assetName = fontMan.getAssetFromID(fontID);
-        s.serialize("name", assetName);
+        if (std::shared_ptr<FontMan> fm = fontMan.lock()) {
+            std::string assetName = fm->getAssetFromID(fontID);
+            s.serialize("name", assetName);
+            return true;
+        }
+        return false;
       }
       else
       {
         std::cerr << "Font.hpp bad cast." << std::endl;
+        return false;
       }
 
       return true;
