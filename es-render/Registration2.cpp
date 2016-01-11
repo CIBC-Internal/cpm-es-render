@@ -18,6 +18,7 @@
 #include "comp/StaticTextureMan.hpp"
 #include "comp/StaticFontMan.hpp"
 #include "comp/StaticIBOMan.hpp"
+#include "comp/StaticFBOMan.hpp"
 #include "comp/GeomPromise.hpp"
 #include "comp/Geom.hpp"
 #include "comp/Font.hpp"
@@ -42,6 +43,7 @@ namespace ren {
     core.registerComponent<StaticTextureMan>();
     core.registerComponent<StaticVBOMan>();
     core.registerComponent<StaticIBOMan>();
+	core.registerComponent<StaticFBOMan>();
     core.registerComponent<StaticFontMan>();
   }
 

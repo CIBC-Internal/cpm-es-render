@@ -4,28 +4,41 @@
 #include <glm/glm.hpp>
 #include <gl-platform/GLPlatform.hpp>
 #include <es-cereal/ComponentSerialize.hpp>
+#include <es-render/comp/Texture.hpp>
 
 namespace ren {
 
-struct FBO
-{
-  // -- Data --
-  GLuint glid;
-
-  // -- Functions --
-  FBO()
+  struct FBO
   {
-    glid = 0;    
-  }
+    // -- Data --
+    GLuint glid;
+    GLenum textureType;
+    bool initialized;
 
-  static const char* getName() {return "ren:FBO";}
+    // -- Functions --
+    FBO()
+    {
+      glid = 0;
+      textureType = GL_TEXTURE_2D;
+      initialized = false;
+    }
 
-  bool serialize(CPM_ES_CEREAL_NS::ComponentSerialize& /* s */, uint64_t /* entityID */)
-  {
-    /// Nothing needs to be serialized. This is context specific.
-    return true;
-  }
-};
+    static const char* getName() { return "ren:FBO"; }
+
+    struct TextureData
+    {
+      GLenum att;
+      std::string texName;
+    };
+
+    std::vector<TextureData> textures;
+
+    bool serialize(CPM_ES_CEREAL_NS::ComponentSerialize& /* s */, uint64_t /* entityID */)
+    {
+      /// Nothing needs to be serialized. This is context specific.
+      return true;
+    }
+  };
 
 } // namespace ren
 
