@@ -102,6 +102,46 @@ namespace ren {
     return tex;
   }
 
+  ren::Texture TextureMan::createTexture(
+    const std::string& assetName,
+    FT_GlyphSlot g)
+  {
+    GLuint texID;
+    GL(glGenTextures(1, &texID));
+    GL(glBindTexture(GL_TEXTURE_2D, texID));
+    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+    GL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RED,
+      g->bitmap.width, g->bitmap.rows, 0,
+      GL_RED, GL_UNSIGNED_BYTE, g->bitmap.buffer));
+
+    // Simply update mGLToName and mNameToGL. The fulfillment system will
+    // handle everything else.
+    mGLToName.insert(std::make_pair(texID, assetName));
+    mNameToGL.insert(std::make_pair(assetName, texID));
+
+    // Set new unfulfilled assets flag so we know if a GC cycle will remove
+    // valid assets. We can use this to disable a GC cycle if it will have
+    // unintended side-effects.
+    mNewUnfulfilledAssets = true;
+    GL(glBindTexture(GL_TEXTURE_2D, 0));
+
+    ren::Texture tex;
+    tex.glid = texID;
+    tex.textureType = GL_TEXTURE_2D;
+    tex.textureWidth = g->bitmap.width;
+    tex.textureHeight = g->bitmap.rows;
+    tex.textureDepth = 1;
+    tex.internalFormat = GL_RED;
+    tex.format = GL_RED;
+    tex.type = GL_UNSIGNED_BYTE;
+    tex.filter = GL_LINEAR;
+    return tex;
+  }
+
   bool TextureMan::resizeTexture(
     ren::Texture &tex, GLsizei textureWidth,
     GLsizei textureHeight)
