@@ -9,10 +9,6 @@
 #include <gl-platform/GLPlatform.hpp>
 #include <es-acorn/Acorn.hpp>
 
-//freetype
-#include <ft2build.h>
-#include FT_FREETYPE_H
-
 namespace ren {
 
   class Texture;
@@ -44,7 +40,9 @@ namespace ren {
 
     //create a texture from font face
     ren::Texture createTexture(
-      const std::string& assetName, FT_GlyphSlot g);
+      const std::string& assetName,
+      GLsizei textureWidth, GLsizei textureHeight,
+      const std::vector<uint8_t>& bitmap);
 
     //resize texture
     bool resizeTexture(

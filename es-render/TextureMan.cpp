@@ -104,7 +104,8 @@ namespace ren {
 
   ren::Texture TextureMan::createTexture(
     const std::string& assetName,
-    FT_GlyphSlot g)
+    GLsizei textureWidth, GLsizei textureHeight,
+    const std::vector<uint8_t>& bitmap)
   {
     GLuint texID;
     GL(glGenTextures(1, &texID));
@@ -114,9 +115,11 @@ namespace ren {
     GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
     GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 
-    GL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RED,
-      g->bitmap.width, g->bitmap.rows, 0,
-      GL_RED, GL_UNSIGNED_BYTE, g->bitmap.buffer));
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    GL(glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE,
+      textureWidth, textureHeight, 0,
+      GL_LUMINANCE, GL_UNSIGNED_BYTE, (const GLvoid*)(&(bitmap[0]))));
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
     // Simply update mGLToName and mNameToGL. The fulfillment system will
     // handle everything else.
@@ -132,11 +135,11 @@ namespace ren {
     ren::Texture tex;
     tex.glid = texID;
     tex.textureType = GL_TEXTURE_2D;
-    tex.textureWidth = g->bitmap.width;
-    tex.textureHeight = g->bitmap.rows;
+    tex.textureWidth = textureWidth;
+    tex.textureHeight = textureHeight;
     tex.textureDepth = 1;
-    tex.internalFormat = GL_RED;
-    tex.format = GL_RED;
+    tex.internalFormat = GL_LUMINANCE;
+    tex.format = GL_LUMINANCE;
     tex.type = GL_UNSIGNED_BYTE;
     tex.filter = GL_LINEAR;
     return tex;
