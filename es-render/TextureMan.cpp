@@ -69,25 +69,32 @@ namespace ren {
     GLenum type, GLint filter)
   {
     GLuint texID;
-    GL(glGenTextures(1, &texID));
-    GL(glBindTexture(GL_TEXTURE_2D, texID));
-    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter));
-    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter));
 
-    GL(glTexImage2D(GL_TEXTURE_2D, 0, internalFormat,
-      textureWidth, textureHeight, 0,
-      format, type, 0));
+    auto it = mNameToGL.find(assetName);
+    if (it != mNameToGL.end())
+      texID = it->second;
+    else
+    {
+      GL(glGenTextures(1, &texID));
+      GL(glBindTexture(GL_TEXTURE_2D, texID));
+      GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter));
+      GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter));
 
-    // Simply update mGLToName and mNameToGL. The fulfillment system will
-    // handle everything else.
-    mGLToName.insert(std::make_pair(texID, assetName));
-    mNameToGL.insert(std::make_pair(assetName, texID));
+      GL(glTexImage2D(GL_TEXTURE_2D, 0, internalFormat,
+        textureWidth, textureHeight, 0,
+        format, type, 0));
 
-    // Set new unfulfilled assets flag so we know if a GC cycle will remove
-    // valid assets. We can use this to disable a GC cycle if it will have
-    // unintended side-effects.
-    mNewUnfulfilledAssets = true;
-    GL(glBindTexture(GL_TEXTURE_2D, 0));
+      // Simply update mGLToName and mNameToGL. The fulfillment system will
+      // handle everything else.
+      mGLToName.insert(std::make_pair(texID, assetName));
+      mNameToGL.insert(std::make_pair(assetName, texID));
+
+      // Set new unfulfilled assets flag so we know if a GC cycle will remove
+      // valid assets. We can use this to disable a GC cycle if it will have
+      // unintended side-effects.
+      mNewUnfulfilledAssets = true;
+      GL(glBindTexture(GL_TEXTURE_2D, 0));
+    }
 
     ren::Texture tex;
     tex.glid = texID;
@@ -108,29 +115,36 @@ namespace ren {
     const std::vector<uint8_t>& bitmap)
   {
     GLuint texID;
-    GL(glGenTextures(1, &texID));
-    GL(glBindTexture(GL_TEXTURE_2D, texID));
-    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-    GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    GL(glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE,
-      textureWidth, textureHeight, 0,
-      GL_LUMINANCE, GL_UNSIGNED_BYTE, (const GLvoid*)(&(bitmap[0]))));
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    auto it = mNameToGL.find(assetName);
+    if (it != mNameToGL.end())
+      texID = it->second;
+    else
+    {
+      GL(glGenTextures(1, &texID));
+      GL(glBindTexture(GL_TEXTURE_2D, texID));
+      GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+      GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+      GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+      GL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 
-    // Simply update mGLToName and mNameToGL. The fulfillment system will
-    // handle everything else.
-    mGLToName.insert(std::make_pair(texID, assetName));
-    mNameToGL.insert(std::make_pair(assetName, texID));
+      glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+      GL(glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE,
+        textureWidth, textureHeight, 0,
+        GL_LUMINANCE, GL_UNSIGNED_BYTE, (const GLvoid*)(&(bitmap[0]))));
+      glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
-    // Set new unfulfilled assets flag so we know if a GC cycle will remove
-    // valid assets. We can use this to disable a GC cycle if it will have
-    // unintended side-effects.
-    mNewUnfulfilledAssets = true;
-    GL(glBindTexture(GL_TEXTURE_2D, 0));
+      // Simply update mGLToName and mNameToGL. The fulfillment system will
+      // handle everything else.
+      mGLToName.insert(std::make_pair(texID, assetName));
+      mNameToGL.insert(std::make_pair(assetName, texID));
+
+      // Set new unfulfilled assets flag so we know if a GC cycle will remove
+      // valid assets. We can use this to disable a GC cycle if it will have
+      // unintended side-effects.
+      mNewUnfulfilledAssets = true;
+      GL(glBindTexture(GL_TEXTURE_2D, 0));
+    }
 
     ren::Texture tex;
     tex.glid = texID;
