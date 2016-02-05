@@ -59,7 +59,7 @@ namespace ren {
       texData.texName = "FBO:Texture:Depth";
       tex = textureMan->createTexture(
         texData.texName, npixelx, npixely, GL_DEPTH_COMPONENT,
-        GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, GL_NEAREST);
+        GL_DEPTH_COMPONENT, GL_FLOAT, GL_NEAREST);
       entityID = getEntityIDForName(texData.texName);
       core.addComponent(entityID, tex);
       fbo.textures.push_back(texData);
@@ -198,7 +198,7 @@ namespace ren {
   bool FBOMan::readFBO(CPM_ES_CEREAL_NS::CerealCore& core,
     const std::string& assetName,
     GLint posx, GLint posy, GLsizei width, GLsizei height,
-    GLvoid* value)
+    GLvoid* value, GLvoid* depth)
   {
     //get fbo
     CPM_ES_CEREAL_NS::CerealHeap<ren::FBO>* contFBO =
@@ -221,8 +221,6 @@ namespace ren {
     auto texi = fbo.textures.begin();
     if (texi == fbo.textures.end())
       return false;
-    GLuint texid = textureMan->getIDForAsset((texi->texName).c_str());
-    GL(glBindTexture(fbo.textureType, texid));
     //get texture
     std::pair<const ren::Texture*, size_t> compTex =
       contTex->getComponent(getEntityIDForName(texi->texName));
@@ -232,7 +230,9 @@ namespace ren {
     ren::Texture tex = *compTex.first;
     GL(glReadPixels(posx, tex.textureHeight - posy, width, height,
       tex.format, tex.type, value));
-    GL(glBindTexture(fbo.textureType, 0));
+    if (depth)
+      GL(glReadPixels(posx, tex.textureHeight - posy, width, height,
+        GL_DEPTH_COMPONENT, GL_FLOAT, depth));
     return true;
   }
 

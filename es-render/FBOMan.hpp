@@ -43,7 +43,7 @@ namespace ren {
     bool readFBO(CPM_ES_CEREAL_NS::CerealCore& core,
       const std::string& assetName,
       GLint posx, GLint posy, GLsizei width, GLsizei height,
-      GLvoid* value);
+      GLvoid* value, GLvoid* depth);
 
     void removeInMemoryFBO(GLuint glid);
 
