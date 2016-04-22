@@ -12,7 +12,7 @@ namespace ren {
 struct CommonUniforms
 {
   // -- Data --
-  static const int MaxNumCommonUniforms = 3;
+  static const int MaxNumCommonUniforms = 5;
   
   enum COMMON_UNIFORMS
   {
