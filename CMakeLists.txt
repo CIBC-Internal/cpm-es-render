@@ -93,7 +93,7 @@ CPM_AddModule("gl_state"
 # ++ MODULE: Lodepng png loading library.
 CPM_AddModule("lodepng"
   GIT_REPOSITORY "https://github.com/CIBC-Internal/cpm-lodepng.git"
-  GIT_TAG "origin/master")
+  GIT_TAG "origin/SCIRun")
 
 # ++ MODULE: bserialize library (primarily for loading fonts).
 CPM_AddModule("bserialize"
